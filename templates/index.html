@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cyber Threat Intelligence Dashboard</title>
+</head>
+<body>
+    <h1>Cyber Threat Intelligence Dashboard</h1>
+
+    <form method="POST">
+        <label>Enter IP/Domain:</label>
+        <input type="text" name="ioc" required><br><br>
+
+        <label>Tag this IOC (optional):</label>
+        <input type="text" name="tag"><br><br>
+
+        <input type="checkbox" name="export"> Export to CSV<br><br>
+
+        <button type="submit">Check</button>
+    </form>
+
+    {% if result %}
+        <h2>Result</h2>
+        <table border="1">
+            <tr><th>IOC</th><td>{{ result.ioc }}</td></tr>
+            <tr><th>Malicious</th><td>{{ result.malicious }}</td></tr>
+            <tr><th>Suspicious</th><td>{{ result.suspicious }}</td></tr>
+            <tr><th>Harmless</th><td>{{ result.harmless }}</td></tr>
+            <tr><th>Abuse Score</th><td>{{ result.abuse_score }}</td></tr>
+            <tr><th>Abuse Categories</th><td>{{ result.abuse_category }}</td></tr>
+            <tr><th>Tag</th><td>{{ result.tag }}</td></tr>
+        </table>
+    {% endif %}
+
+    <h2>🔍 Search Saved IOC</h2>
+    <form method="POST" action="/search">
+        <input type="text" name="search_ioc" placeholder="Enter IP or Domain to search">
+        <button type="submit">Search</button>
+    </form>
+
+    {% if search_result %}
+        <h3>🔍 Search Result</h3>
+        {% if search_result is string %}
+            <p>{{ search_result }}</p>
+        {% else %}
+            <table border="1">
+                <tr><th>IOC</th><th>Malicious</th><th>Suspicious</th><th>Harmless</th><th>Abuse Score</th><th>Abuse Categories</th><th>Tag</th></tr>
+                <tr>
+                    <td>{{ search_result["IOC"] }}</td>
+                    <td>{{ search_result["Malicious"] }}</td>
+                    <td>{{ search_result["Suspicious"] }}</td>
+                    <td>{{ search_result["Harmless"] }}</td>
+                    <td>{{ search_result["Abuse Score"] }}</td>
+                    <td>{{ search_result["Abuse Categories"] }}</td>
+                    <td>{{ search_result["Tag"] }}</td>
+                </tr>
+            </table>
+        {% endif %}
+    {% endif %}
+
+    <br>
+    <form method="get" action="/download">
+        <button type="submit">Download CSV</button>
+    </form>
+</body>
+</html>
+
