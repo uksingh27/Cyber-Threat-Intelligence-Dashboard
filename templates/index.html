@@ -1,66 +1,496 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Cyber Threat Intelligence Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Cyber Threat Intelligence Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .search-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .search-form {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: end;
+        }
+
+        .form-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .card h3 {
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .threat-level {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+
+        .threat-high { background: #ff4757; color: white; }
+        .threat-medium { background: #ffa502; color: white; }
+        .threat-low { background: #ff6348; color: white; }
+        .threat-clean { background: #2ed573; color: white; }
+        .threat-unknown { background: #747d8c; color: white; }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .info-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 1.1rem;
+            color: #333;
+        }
+
+        #map {
+            height: 400px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+        }
+
+        .search-history {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .search-form-history {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .search-form-history input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .results-table th,
+        .results-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e1e5e9;
+        }
+
+        .results-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .download-section {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .error {
+            background: #ff4757;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .search-form {
+                flex-direction: column;
+            }
+            
+            .form-group {
+                min-width: 100%;
+            }
+        }
+    </style>
 </head>
 <body>
-    <h1>Cyber Threat Intelligence Dashboard</h1>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-shield-alt"></i> Cyber Threat Intelligence Dashboard</h1>
+            <p>Real-time threat analysis with geolocation mapping</p>
+        </div>
 
-    <form method="POST">
-        <label>Enter IP/Domain:</label>
-        <input type="text" name="ioc" required><br><br>
+        <div class="search-section">
+            <h3><i class="fas fa-search"></i> Threat Intelligence Lookup</h3>
+            <form method="POST" class="search-form">
+                <div class="form-group">
+                    <label for="ioc">IP Address or Domain</label>
+                    <input type="text" name="ioc" id="ioc" placeholder="Enter IP address or domain" required>
+                </div>
+                <div class="form-group">
+                    <label for="tag">Custom Tag (Optional)</label>
+                    <input type="text" name="tag" id="tag" placeholder="e.g., Campaign-2024">
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" name="export" id="export">
+                    <label for="export">Export to CSV</label>
+                </div>
+                <button type="submit" class="btn">
+                    <i class="fas fa-search"></i> Analyze Threat
+                </button>
+            </form>
+        </div>
 
-        <label>Tag this IOC (optional):</label>
-        <input type="text" name="tag"><br><br>
+        {% if result %}
+        <div class="dashboard-grid">
+            <!-- Threat Intelligence Card -->
+            <div class="card">
+                <h3><i class="fas fa-exclamation-triangle"></i> Threat Intelligence</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">IOC</div>
+                        <div class="info-value">{{ result.ioc }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Threat Level</div>
+                        <div class="info-value">
+                            <span class="threat-level threat-{{ result.threat_level.lower() }}">{{ result.threat_level }}</span>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Malicious</div>
+                        <div class="info-value">{{ result.malicious }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Suspicious</div>
+                        <div class="info-value">{{ result.suspicious }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Harmless</div>
+                        <div class="info-value">{{ result.harmless }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Abuse Score</div>
+                        <div class="info-value">{{ result.abuse_score }}</div>
+                    </div>
+                </div>
+                
+                {% if result.abuse_category != "N/A" %}
+                <div class="info-item" style="margin-top: 15px;">
+                    <div class="info-label">Abuse Categories</div>
+                    <div class="info-value">{{ result.abuse_category }}</div>
+                </div>
+                {% endif %}
 
-        <input type="checkbox" name="export"> Export to CSV<br><br>
+                {% if result.tag != "None" %}
+                <div class="info-item" style="margin-top: 15px;">
+                    <div class="info-label">Custom Tag</div>
+                    <div class="info-value">{{ result.tag }}</div>
+                </div>
+                {% endif %}
+            </div>
 
-        <button type="submit">Check</button>
-    </form>
+            <!-- Geolocation Card -->
+            <div class="card">
+                <h3><i class="fas fa-globe"></i> Geolocation Information</h3>
+                {% if result.geolocation %}
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Country</div>
+                        <div class="info-value">{{ result.geolocation.country_name or 'N/A' }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">City</div>
+                        <div class="info-value">{{ result.geolocation.city or 'N/A' }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Region</div>
+                        <div class="info-value">{{ result.geolocation.state_prov or 'N/A' }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">ISP</div>
+                        <div class="info-value">{{ result.geolocation.isp or 'N/A' }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">ASN</div>
+                        <div class="info-value">{{ result.asn }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Organization</div>
+                        <div class="info-value">{{ result.organization }}</div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="info-item">
+                    <div class="info-label">Status</div>
+                    <div class="info-value">Geolocation data not available</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
 
-    {% if result %}
-        <h2>Result</h2>
-        <table border="1">
-            <tr><th>IOC</th><td>{{ result.ioc }}</td></tr>
-            <tr><th>Malicious</th><td>{{ result.malicious }}</td></tr>
-            <tr><th>Suspicious</th><td>{{ result.suspicious }}</td></tr>
-            <tr><th>Harmless</th><td>{{ result.harmless }}</td></tr>
-            <tr><th>Abuse Score</th><td>{{ result.abuse_score }}</td></tr>
-            <tr><th>Abuse Categories</th><td>{{ result.abuse_category }}</td></tr>
-            <tr><th>Tag</th><td>{{ result.tag }}</td></tr>
-        </table>
-    {% endif %}
-
-    <h2>🔍 Search Saved IOC</h2>
-    <form method="POST" action="/search">
-        <input type="text" name="search_ioc" placeholder="Enter IP or Domain to search">
-        <button type="submit">Search</button>
-    </form>
-
-    {% if search_result %}
-        <h3>🔍 Search Result</h3>
-        {% if search_result is string %}
-            <p>{{ search_result }}</p>
-        {% else %}
-            <table border="1">
-                <tr><th>IOC</th><th>Malicious</th><th>Suspicious</th><th>Harmless</th><th>Abuse Score</th><th>Abuse Categories</th><th>Tag</th></tr>
-                <tr>
-                    <td>{{ search_result["IOC"] }}</td>
-                    <td>{{ search_result["Malicious"] }}</td>
-                    <td>{{ search_result["Suspicious"] }}</td>
-                    <td>{{ search_result["Harmless"] }}</td>
-                    <td>{{ search_result["Abuse Score"] }}</td>
-                    <td>{{ search_result["Abuse Categories"] }}</td>
-                    <td>{{ search_result["Tag"] }}</td>
-                </tr>
-            </table>
+        <!-- World Map -->
+        {% if result.geolocation and result.geolocation.latitude and result.geolocation.longitude %}
+        <div class="card">
+            <h3><i class="fas fa-map-marker-alt"></i> Geographic Location</h3>
+            <div id="map"></div>
+        </div>
         {% endif %}
-    {% endif %}
 
-    <br>
-    <form method="get" action="/download">
-        <button type="submit">Download CSV</button>
-    </form>
+        <!-- Threat Analysis Chart -->
+        <div class="card">
+            <h3><i class="fas fa-chart-pie"></i> Threat Analysis Breakdown</h3>
+            <div class="chart-container">
+                <canvas id="threatChart"></canvas>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Search History Section -->
+        <div class="search-history">
+            <h3><i class="fas fa-history"></i> Search Saved IOCs</h3>
+            <form method="POST" action="/search" class="search-form-history">
+                <input type="text" name="search_ioc" placeholder="Enter IP or Domain to search">
+                <button type="submit" class="btn">
+                    <i class="fas fa-search"></i> Search
+                </button>
+            </form>
+
+            {% if search_result %}
+            <h4>Search Result</h4>
+            {% if search_result is string %}
+                <p>{{ search_result }}</p>
+            {% else %}
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>IOC</th>
+                            <th>Malicious</th>
+                            <th>Suspicious</th>
+                            <th>Harmless</th>
+                            <th>Abuse Score</th>
+                            <th>Abuse Categories</th>
+                            <th>Tag</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{{ search_result["IOC"] }}</td>
+                            <td>{{ search_result["Malicious"] }}</td>
+                            <td>{{ search_result["Suspicious"] }}</td>
+                            <td>{{ search_result["Harmless"] }}</td>
+                            <td>{{ search_result["Abuse Score"] }}</td>
+                            <td>{{ search_result["Abuse Categories"] }}</td>
+                            <td>{{ search_result["Tag"] }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            {% endif %}
+            {% endif %}
+        </div>
+
+        <!-- Download Section -->
+        <div class="download-section">
+            <form method="get" action="/download">
+                <button type="submit" class="btn">
+                    <i class="fas fa-download"></i> Download CSV Report
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Initialize map if geolocation data is available
+        {% if result and result.geolocation and result.geolocation.latitude and result.geolocation.longitude %}
+        const lat = {{ result.geolocation.latitude }};
+        const lng = {{ result.geolocation.longitude }};
+        const city = "{{ result.geolocation.city or 'Unknown' }}";
+        const country = "{{ result.geolocation.country_name or 'Unknown' }}";
+        
+        const map = L.map('map').setView([lat, lng], 6);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        const marker = L.marker([lat, lng]).addTo(map);
+        marker.bindPopup(`<b>${city}, ${country}</b><br>IP: {{ result.ioc }}`).openPopup();
+        {% endif %}
+
+        // Initialize threat analysis chart
+        {% if result %}
+        const ctx = document.getElementById('threatChart').getContext('2d');
+        const malicious = {{ result.malicious if result.malicious != "N/A" else 0 }};
+        const suspicious = {{ result.suspicious if result.suspicious != "N/A" else 0 }};
+        const harmless = {{ result.harmless if result.harmless != "N/A" else 0 }};
+        
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Malicious', 'Suspicious', 'Harmless'],
+                datasets: [{
+                    data: [malicious, suspicious, harmless],
+                    backgroundColor: ['#ff4757', '#ffa502', '#2ed573'],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true
+                        }
+                    }
+                }
+            }
+        });
+        {% endif %}
+    </script>
 </body>
 </html>
-
